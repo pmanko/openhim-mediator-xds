@@ -85,13 +85,8 @@ public class PIXRequestActor extends UntypedActor {
         t.set("QPD-3-1", msg.getIdentifier().getIdentifier());
         t.set("QPD-3-4", msg.getIdentifier().getAssigningAuthority().getAssigningAuthority());
         t.set("QPD-3-4-2", msg.getIdentifier().getAssigningAuthority().getAssigningAuthorityId());
-        t.set("QPD-3-4-3", "ISO");
+        t.set("QPD-3-4-3", "NI");
         t.set("QPD-3-5", "PI");
-
-        t.set("QPD-4-4", msg.getTargetAssigningAuthority().getAssigningAuthority());
-        t.set("QPD-4-4-2", msg.getTargetAssigningAuthority().getAssigningAuthorityId());
-        t.set("QPD-4-4-3", "ISO");
-        t.set("QPD-4-5", "PI");
 
         t.set("RCP-1", "I");
 
