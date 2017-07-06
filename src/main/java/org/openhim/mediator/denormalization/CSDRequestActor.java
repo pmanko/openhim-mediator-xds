@@ -107,7 +107,7 @@ public class CSDRequestActor extends UntypedActor {
         String csdTemplate = "<careServicesRequest xmlns='urn:ihe:iti:csd:2013'>\n"
                 + "	<function urn='urn:ihe:iti:csd:2014:stored-function:facility-search'>\n"
                 + "		<requestParams>\n"
-                + "			<otherID code='" + msg.getIdentifier().getIdentifier() + "' assigningAuthorityName='" + msg.getIdentifier().getAssigningAuthority().getAssigningAuthorityId() + "'/>\n"
+                + "			<otherID assigningAuthorityName='" + msg.getIdentifier().getAssigningAuthority().getAssigningAuthorityId() + "'>" + msg.getIdentifier().getIdentifier() + "</otherID> \n"
                 + "		</requestParams>\n"
                 + "	</function>\n"
                 + "</careServicesRequest>";
