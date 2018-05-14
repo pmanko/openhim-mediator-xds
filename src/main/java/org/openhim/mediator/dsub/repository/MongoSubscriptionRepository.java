@@ -1,43 +1,45 @@
 package org.openhim.mediator.dsub.repository;
 
-import com.mongodb.MongoClient;
+import akka.event.LoggingAdapter;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.result.DeleteResult;
 import org.bson.Document;
-import org.openhim.mediator.engine.MediatorConfig;
+import org.openhim.mediator.dsub.MongoSupport;
 
-public class MongoSubscriptionRepository implements SubscriptionRepository {
+import java.util.UUID;
 
-    private static final String ID = "_id";
+public class MongoSubscriptionRepository extends MongoSupport implements SubscriptionRepository {
 
-    private final MongoClient mongoClient;
+    private static final String URL = "url";
 
-    public MongoSubscriptionRepository(MediatorConfig mediatorConfig) {
-        mongoClient = new MongoClient(mediatorConfig.getProperty("mediator.mongoUrl"));
+    private final LoggingAdapter log;
+
+    public MongoSubscriptionRepository(MongoDatabase mongoDb, LoggingAdapter log) {
+        super(mongoDb, "subscriptions");
+        this.log = log;
     }
 
     @Override
-    public void saveSubscription(Subscription subscription) {
-        String id = subscription.getName();
-
+    public void saveSubscription(String url) {
         MongoCollection<Document> collection = getCollection();
 
-        Document doc = new Document(ID, subscription.getName())
-                .append("url", subscription.getUrl());
-        collection.insertOne(doc);
-
-        Document existing = collection.find(Filters.eq(ID, id)).first();
+        Document existing = collection.find(Filters.eq(URL, url)).first();
         if (existing == null) {
+            log.info("Saving subscription for: "+ url);
+
+            Document doc = new Document(ID, UUID.randomUUID())
+                    .append("url", url);
             collection.insertOne(doc);
         } else {
-            collection.updateOne(Filters.eq(ID, id), doc);
+            log.warning("Subscription already exists: " + url);
         }
     }
 
-    private MongoCollection<Document> getCollection() {
-        MongoDatabase db = mongoClient.getDatabase("dsub");
-        return db.getCollection("dsub_subscriptions");
+    @Override
+    public void deleteSubscription(String url) {
+        DeleteResult result = getCollection().deleteMany(Filters.eq(URL, url));
+        log.info("Deleted " + result.getDeletedCount() + " subscriptions for: " + url);
     }
-
 }

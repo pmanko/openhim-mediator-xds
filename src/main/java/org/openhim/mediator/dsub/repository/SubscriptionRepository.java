@@ -1,5 +1,7 @@
 package org.openhim.mediator.dsub.repository;
 
 public interface SubscriptionRepository {
-    void saveSubscription(Subscription subscription);
+    void saveSubscription(String url);
+
+    void deleteSubscription(String url);
 }
