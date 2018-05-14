@@ -15,6 +15,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.openhim.mediator.denormalization.ATNAAuditingActor;
 import org.openhim.mediator.denormalization.EnrichRegistryStoredQueryActor;
+import org.openhim.mediator.dsub.DsubActor;
 import org.openhim.mediator.engine.*;
 import org.openhim.mediator.engine.messages.SetupHTTPSCertificate;
 import org.openhim.mediator.normalization.ParseRegistryStoredQueryActor;
@@ -32,6 +33,7 @@ public class XDSMediatorMain {
         RoutingTable routingTable = new RoutingTable();
         routingTable.addRoute("/xdsregistry", RegistryActor.class);
         routingTable.addRoute("/xdsrepository", RepositoryActor.class);
+        routingTable.addRoute("/dsub", DsubActor.class);
         return routingTable;
     }
 
