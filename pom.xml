@@ -59,6 +59,18 @@
               <wsdlOption>
                 <wsdl>${basedir}/src/main/resources/wsdl/XDS.b_DocumentRegistry.wsdl</wsdl>
               </wsdlOption>
+              <wsdlOption>
+                <wsdl>${basedir}/src/main/resources/wsdl/brw-2.wsdl</wsdl>
+                <extraargs>
+                  <extraarg>-server</extraarg>
+                </extraargs>
+              </wsdlOption>
+              <wsdlOption>
+                <wsdl>${basedir}/src/main/resources/wsdl/bw-2.wsdl</wsdl>
+                <extraargs>
+                  <extraarg>-server</extraarg>
+                </extraargs>
+              </wsdlOption>
             </wsdlOptions>
           </configuration>
           <goals>
