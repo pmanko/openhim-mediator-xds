@@ -26,6 +26,21 @@
           "primary": "true"
         }
       ]
+    },
+    {
+      "name": "DSUB",
+      "urlPattern": "^/dsub$",
+      "type": "http",
+      "allow": ["xds"],
+      "routes": [
+        {
+          "name": "XDS.b Mediator - DSUB",
+          "host": "localhost",
+          "port": "8500",
+          "type": "http",
+          "primary": "true"
+        }
+      ]
     }
   ]
 }
