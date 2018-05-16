@@ -102,36 +102,9 @@ public class DsubActor extends UntypedActor {
             String parsedRequest = DsubUtil.parseRequest(request);
             result = DsubUtil.extractRequestMessage(parsedRequest);
         } catch (ParserConfigurationException | SAXException | IOException | JAXBException | TransformerException e) {
-            throw new RuntimeException(e);
+            log.error("Parsing Dsub request failure");
+            result = null;
         }
         return result;
     }
 }
-/*
-Document dom;
-DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-DocumentBuilder db = dbf.newDocumentBuilder();
-dom =  db.parse(IOUtils.toInputStream(request.getBody()));
-NamedNodeMap attr = dom.getDocumentElement().getAttributes();
-Node node = dom.getDocumentElement().getChildNodes().item(3).getChildNodes().item(1);
-for (int i = 0; i<attr.getLength(); i++) {
-    ((Element)node).setAttribute(attr.item(i).getNodeName(),attr.item(i).getNodeValue());
-}
-Node test = node;
-
-
-StringWriter sw = new StringWriter();
-try {
-    Transformer t = TransformerFactory.newInstance().newTransformer();
-    t.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-    t.setOutputProperty(OutputKeys.INDENT, "yes");
-    t.transform(new DOMSource(node), new StreamResult(sw));
-} catch (TransformerException te) {
-    System.out.println("nodeToString Transformer Exception");
-}
-sw.toString();
-
-Object result = (Object)(unmarshaller.unmarshal(IOUtils.toInputStream(sw.toString())));
-
-
- */
