@@ -44,10 +44,10 @@ public final class DsubUtil {
         Document dom = db.parse(IOUtils.toInputStream(request.getBody()));
         NamedNodeMap envelopeAttributes = dom.getDocumentElement().getAttributes();
         Node messageNode = dom.getDocumentElement().getChildNodes().item(BODY_NODE).getChildNodes().item(MESSAGE_NODE);
-        for (int i = 0; i< envelopeAttributes.getLength() ; i++) {
+        for (int i = 0; i < envelopeAttributes.getLength(); i++) {
             String attrName = envelopeAttributes.item(i).getNodeName();
             String attrValue = envelopeAttributes.item(i).getNodeValue();
-            ((Element)messageNode).setAttribute(attrName, attrValue);
+            ((Element) messageNode).setAttribute(attrName, attrValue);
         }
 
         StringWriter sw = new StringWriter();
@@ -58,5 +58,6 @@ public final class DsubUtil {
         return sw.toString();
     }
 
-    private DsubUtil(){}
+    private DsubUtil() {
+    }
 }

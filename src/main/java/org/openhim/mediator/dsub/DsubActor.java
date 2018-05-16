@@ -93,7 +93,6 @@ public class DsubActor extends UntypedActor {
         } else {
             //unknown request type handling
         }
-
     }
 
     private Object parseMessage(MediatorHTTPRequest request) {

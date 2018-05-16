@@ -101,5 +101,4 @@ public class DsubUtilTest {
         Object result = DsubUtil.extractRequestMessage(parsedMessage);
         Assert.assertTrue(result instanceof Subscribe);
     }
-
 }
