@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"
+            xmlns:a="http://www.w3.org/2005/08/addressing"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2"
+            xmlns:rim="urn:oasis:names:tc:ebxml-regrep:xsd:rim:3.0"
+            xsi:schemaLocation="http://www.w3.org/2003/05/soap-envelope http://www.w3.org/2003/05/soapenvelope
+http://www.w3.org/2005/08/addressing http://www.w3.org/2005/08/addressing/ws-addr.xsd
+http://docs.oasis-open.org/wsn/b-2 http://docs.oasis-open.org/wsn/b-2.xsd
+urn:oasis:names:tc:ebxml-regrep:xsd:rim:3.0 ../schema/ebRS/rim.xsd">
+    <s:Header>
+        <a:Action>http://docs.oasis-open.org/wsn/bw2/NotificationProducer/SubscribeRequest</a:Action>
+        <a:MessageID>382dcdc7-8e84-9fdc-8443-48fd83bca938</a:MessageID>
+        <a:To s:mustUnderstand="1">https://sedish.net:5001/dsub</a:To>
+    </s:Header>
+    <s:Body>
+        <wsnt:Subscribe>
+            <!-- The Recipient on whose behalf the subscription is requested - the address where the notification is to be sent -->
+            <wsnt:ConsumerReference>
+                <a:Address>https://NotificationRecipientServer/xdsBnotification</a:Address>
+            </wsnt:ConsumerReference>
+            <wsnt:Filter>
+                <wsnt:TopicExpression Dialect="http://docs.oasis-open.org/wsn/t1/TopicExpression/Simple">
+                    ihe:MinimalDocumentEntry
+                </wsnt:TopicExpression>
+                <rim:AdhocQuery id="urn:uuid:aa2332d0-f8fe-11e0-be50-0800200c9a66">
+                    <!-- Optional, can restrict by facility -->
+                    <rim:Slot name="$XDSDocumentEntryHealthcareFacilityTypeCode">
+                        <rim:ValueList>
+                            <rim:Value>('Maison de Naissance^^^^^&amp;http://ohie-fr:8080/api/organisationUnits&amp;ISO^^^^712201')</rim:Value>
+                        </rim:ValueList>
+                    </rim:Slot>
+                </rim:AdhocQuery>
+            </wsnt:Filter>
+            <wsnt:InitialTerminationTime>2010-05-31T00:00:00.00000Z</wsnt:InitialTerminationTime>
+        </wsnt:Subscribe>
+    </s:Body>
+</s:Envelope>

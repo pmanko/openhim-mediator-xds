@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"
+            xmlns:a="http://www.w3.org/2005/08/addressing"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2"
+            xmlns:xds="urn:ihe:iti:xds-b:2007"
+            xmlns:rim="urn:oasis:names:tc:ebxml-regrep:xsd:rim:3.0"
+            xsi:schemaLocation="http://www.w3.org/2003/05/soap-envelope http://www.w3.org/2003/05/soapenvelope
+        http://www.w3.org/2005/08/addressing http://www.w3.org/2005/08/addressing/ws-addr.xsd
+        http://docs.oasis-open.org/wsn/b-2 http://docs.oasis-open.org/wsn/b-2.xsd urn:ihe:iti:xds-b:2007
+        ../../schema/IHE/XDS.b_DocumentRepository.xsd urn:oasis:names:tc:ebxml-regrep:xsd:rim:3.0
+        ../../schema/ebRS/rim.xsd">
+    <s:Header>
+        <a:Action>http://docs.oasis-open.org/wsn/bw-2/NotificationConsumer/Notify</a:Action>
+        <a:MessageID>382dcdca-8e87-9fdf-8446-48fd83bca93b</a:MessageID>
+        <a:To>https://NotificationRecipientServer/xdsBnotification</a:To>
+    </s:Header>
+    <s:Body>
+        <wsnt:Notify>
+            <wsnt:NotificationMessage>
+                <wsnt:SubscriptionReference>
+                    <a:Address>https://NotificationBrokerServer/Subscription/382dcdc7-8e84-9fdc8443-48fd83bca938
+                    </a:Address>
+                </wsnt:SubscriptionReference>
+                <wsnt:Topic Dialect="http://docs.oasis-open.org/wsn/t1/TopicExpression/Simple">
+                    ihe:MinimalDocumentEntry
+                </wsnt:Topic>
+                <wsnt:ProducerReference>
+                    <a:Address>https://ProducerReference</a:Address>
+                </wsnt:ProducerReference>
+                <wsnt:Message>
+                    <lcm:SubmitObjectsRequest>
+                        <rim:RegistryObjectList>
+                            <!-- Document ID -->
+                            <rim:ObjectRef id="urn:uuid:93606bcf-9494-43ec-9b4e-a7748d1a838d"/>
+                        </rim:RegistryObjectList>
+                    </lcm:SubmitObjectsRequest>
+                </wsnt:Message>
+            </wsnt:NotificationMessage>
+        </wsnt:Notify>
+    </s:Body>
+</s:Envelope>

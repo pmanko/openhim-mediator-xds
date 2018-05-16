@@ -1,16 +1,17 @@
 package org.openhim.mediator.dsub.service;
 
+import java.util.Date;
 import java.util.List;
 
 public interface DsubService {
 
-    void createSubscription(String url);
+    void createSubscription(String url, String facilityQuery, Date terminateAt);
 
     void deleteSubscription(String url);
 
-    void notifyNewDocument(String docId);
+    void notifyNewDocument(String docId, String facilityId);
 
-    void newDocumentForPullPoint(String docId, String locationId);
+    void newDocumentForPullPoint(String docId, String facilityId);
 
-    List<String> getDocumentsForPullPoint(String locationId);
+    List<String> getDocumentsForPullPoint(String facilityId);
 }

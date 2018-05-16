@@ -6,8 +6,10 @@ import akka.event.LoggingAdapter;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import org.openhim.mediator.dsub.pull.PullPointFactory;
-import org.openhim.mediator.dsub.repository.MongoSubscriptionRepository;
-import org.openhim.mediator.dsub.repository.SubscriptionRepository;
+import org.openhim.mediator.dsub.subscription.MongoSubscriptionRepository;
+import org.openhim.mediator.dsub.subscription.SoapSubscriptionNotifier;
+import org.openhim.mediator.dsub.subscription.SubscriptionNotifier;
+import org.openhim.mediator.dsub.subscription.SubscriptionRepository;
 import org.openhim.mediator.dsub.service.DsubService;
 import org.openhim.mediator.dsub.service.DsubServiceImpl;
 import org.openhim.mediator.engine.MediatorConfig;
@@ -29,8 +31,10 @@ public class DsubActor extends UntypedActor {
 
         PullPointFactory pullPointFactory = new PullPointFactory(mongoDb);
         SubscriptionRepository subRepo = new MongoSubscriptionRepository(mongoDb, log);
+        SubscriptionNotifier subNotifier = new SoapSubscriptionNotifier();
 
-        dsubService = new DsubServiceImpl(pullPointFactory, subRepo, log);
+        dsubService = new DsubServiceImpl(pullPointFactory, subRepo,
+                subNotifier, log);
     }
 
     @Override
