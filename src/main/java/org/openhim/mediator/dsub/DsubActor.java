@@ -101,7 +101,7 @@ public class DsubActor extends UntypedActor {
             String parsedRequest = DsubUtil.parseRequest(request);
             result = DsubUtil.extractRequestMessage(parsedRequest);
         } catch (ParserConfigurationException | SAXException | IOException | JAXBException | TransformerException e) {
-            log.error("Parsing Dsub request failure");
+            log.error(e, "Parsing Dsub request failure");
             result = null;
         }
         return result;
