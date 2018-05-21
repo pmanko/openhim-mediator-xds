@@ -5,6 +5,9 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.reflect.FieldUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.oasis_open.docs.wsn.b_2.CreatePullPoint;
 import org.oasis_open.docs.wsn.b_2.DestroyPullPoint;
 import org.oasis_open.docs.wsn.b_2.GetCurrentMessage;
@@ -16,20 +19,25 @@ import org.oasis_open.docs.wsn.b_2.ResumeSubscription;
 import org.oasis_open.docs.wsn.b_2.Subscribe;
 import org.oasis_open.docs.wsn.b_2.Unsubscribe;
 import org.openhim.mediator.dsub.pull.PullPointFactory;
+import org.openhim.mediator.dsub.service.DsubService;
+import org.openhim.mediator.dsub.service.DsubServiceImpl;
 import org.openhim.mediator.dsub.subscription.MongoSubscriptionRepository;
 import org.openhim.mediator.dsub.subscription.SoapSubscriptionNotifier;
 import org.openhim.mediator.dsub.subscription.SubscriptionNotifier;
 import org.openhim.mediator.dsub.subscription.SubscriptionRepository;
-import org.openhim.mediator.dsub.service.DsubService;
-import org.openhim.mediator.dsub.service.DsubServiceImpl;
 import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
 import org.xml.sax.SAXException;
 
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
+import javax.xml.ws.wsaddressing.W3CEndpointReference;
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.text.ParseException;
+import java.util.Date;
 
 public class DsubActor extends UntypedActor {
 
@@ -66,7 +74,25 @@ public class DsubActor extends UntypedActor {
 
         if (result instanceof Subscribe) {
             Subscribe subscribeRequest = (Subscribe) result;
-            //subscribe request handling
+            W3CEndpointReference consumerRef = subscribeRequest.getConsumerReference();
+            Object address = getProperty(consumerRef, "address");
+
+            String uri = getProperty(address, "uri");
+            JAXBElement<String> termination = subscribeRequest.getInitialTerminationTime();
+
+            Date terminationDate = null;
+            if (termination != null && !termination.isNil()) {
+                String val = termination.getValue();
+                if (StringUtils.isNotBlank(val)) {
+                    try {
+                        terminationDate = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.parse(val);
+                    } catch (ParseException e) {
+                        throw new RuntimeException("Unable to parse the date", e);
+                    }
+                }
+            }
+
+            dsubService.createSubscription(uri, null, terminationDate);
         } else if (result instanceof Unsubscribe) {
             Unsubscribe unsubscribeRequest = (Unsubscribe) result;
             //unsubscribe request handling
@@ -109,5 +135,14 @@ public class DsubActor extends UntypedActor {
             result = null;
         }
         return result;
+    }
+
+    private <T> T getProperty(Object object, String name) {
+        try {
+            Field field = FieldUtils.getField(object.getClass(), name, true);
+            return (T) field.get(name);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("Unable to read field: " + name, e);
+        }
     }
 }
