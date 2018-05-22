@@ -117,9 +117,9 @@ public class CSDRequestActor extends UntypedActor {
 
     private String getXPAthExpressionForQueryType(BaseResolveIdentifier query) throws XPathExpressionException {
         if (query instanceof ResolveHealthcareWorkerIdentifier) {
-            return "//CSD/providerDirectory/provider/@entityID";
+            return "//CSD/providerDirectory/provider/otherID[@code='id']";
         } else if (query instanceof ResolveFacilityIdentifier) {
-            return "//CSD/facilityDirectory/facility/@entityID";
+            return "//CSD/facilityDirectory/facility/otherID[@code='code']";
         }
 
         throw new XPathExpressionException("Cannot create expression for unknown BaseResolveIdentifier class");
@@ -139,7 +139,7 @@ public class CSDRequestActor extends UntypedActor {
                 throw new ValidationException("Received identifier could not be parsed as an OID");
             }
         } else {
-            throw new ValidationException("Unsupported id received");
+            return new Identifier(resolvedId, new AssigningAuthority("", UUID_OID_AUTHORITY, "ISO"));
         }
     }
 
