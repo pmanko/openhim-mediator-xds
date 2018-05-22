@@ -11,6 +11,7 @@ import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.openhim.mediator.datatypes.AssigningAuthority;
 import org.openhim.mediator.datatypes.Identifier;
@@ -117,12 +118,27 @@ public class CSDRequestActor extends UntypedActor {
 
     private String getXPAthExpressionForQueryType(BaseResolveIdentifier query) throws XPathExpressionException {
         if (query instanceof ResolveHealthcareWorkerIdentifier) {
-            return "//CSD/providerDirectory/provider/@entityID";
+            return getXPathExpressionForProvider();
         } else if (query instanceof ResolveFacilityIdentifier) {
-            return "//CSD/facilityDirectory/facility/@entityID";
+            return getXPathExpressionForFacility();
         }
-
         throw new XPathExpressionException("Cannot create expression for unknown BaseResolveIdentifier class");
+    }
+
+    private String getXPathExpressionForProvider() {
+        String expression = config.getProperty("ilr.query.expression.provider");
+        if (StringUtils.isBlank(expression)) {
+            expression = "//CSD/providerDirectory/provider/otherID[@code='id']";
+        }
+        return expression;
+    }
+
+    private String getXPathExpressionForFacility() {
+        String expression = config.getProperty("ilr.query.expression.facility");
+        if (StringUtils.isBlank(expression)) {
+            expression = "//CSD/facilityDirectory/facility/otherID[@code='code']";
+        }
+        return expression;
     }
 
     protected static Identifier buildIdentifier(String resolvedId) throws ValidationException {
@@ -139,7 +155,7 @@ public class CSDRequestActor extends UntypedActor {
                 throw new ValidationException("Received identifier could not be parsed as an OID");
             }
         } else {
-            throw new ValidationException("Unsupported id received");
+            return new Identifier(resolvedId, new AssigningAuthority("", UUID_OID_AUTHORITY, "ISO"));
         }
     }
 
