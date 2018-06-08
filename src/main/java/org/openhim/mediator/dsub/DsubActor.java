@@ -37,6 +37,7 @@ import javax.xml.ws.wsaddressing.W3CEndpointReference;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class DsubActor extends UntypedActor {
@@ -49,8 +50,13 @@ public class DsubActor extends UntypedActor {
 
     public DsubActor(MediatorConfig config) {
         this.config = config;
-
-        MongoClient mongoClient = new MongoClient(config.getProperty("mediator.mongoUrl"));
+        String host = config.getProperty("mediator.mongo.host");
+        if (host == null) {
+            throw new RuntimeException("The property mediator.mongo.host is not set!");
+        }
+        Integer port = Integer.parseInt(config.getProperty
+                ("mediator.mongo.port"));
+        MongoClient mongoClient = new MongoClient(host, port);
         mongoDb = mongoClient.getDatabase("dsub");
 
         PullPointFactory pullPointFactory = new PullPointFactory(mongoDb);
@@ -85,13 +91,12 @@ public class DsubActor extends UntypedActor {
                 String val = termination.getValue();
                 if (StringUtils.isNotBlank(val)) {
                     try {
-                        terminationDate = DateFormatUtils.ISO_DATETIME_TIME_ZONE_FORMAT.parse(val);
+                        terminationDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSXXX").parse(val);
                     } catch (ParseException e) {
                         throw new RuntimeException("Unable to parse the date", e);
                     }
                 }
             }
-
             dsubService.createSubscription(uri, null, terminationDate);
         } else if (result instanceof Unsubscribe) {
             Unsubscribe unsubscribeRequest = (Unsubscribe) result;
@@ -140,7 +145,7 @@ public class DsubActor extends UntypedActor {
     private <T> T getProperty(Object object, String name) {
         try {
             Field field = FieldUtils.getField(object.getClass(), name, true);
-            return (T) field.get(name);
+            return (T) field.get(object);
         } catch (IllegalAccessException e) {
             throw new RuntimeException("Unable to read field: " + name, e);
         }
