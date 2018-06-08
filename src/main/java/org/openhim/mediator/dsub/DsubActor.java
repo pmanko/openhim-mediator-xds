@@ -1,5 +1,6 @@
 package org.openhim.mediator.dsub;
 
+import akka.actor.ActorRef;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
@@ -7,7 +8,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
-import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.http.HttpStatus;
 import org.oasis_open.docs.wsn.b_2.CreatePullPoint;
 import org.oasis_open.docs.wsn.b_2.DestroyPullPoint;
 import org.oasis_open.docs.wsn.b_2.GetCurrentMessage;
@@ -27,6 +28,7 @@ import org.openhim.mediator.dsub.subscription.SubscriptionNotifier;
 import org.openhim.mediator.dsub.subscription.SubscriptionRepository;
 import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
+import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
 import org.xml.sax.SAXException;
 
 import javax.xml.bind.JAXBElement;
@@ -47,6 +49,7 @@ public class DsubActor extends UntypedActor {
     private final MongoDatabase mongoDb;
 
     private DsubService dsubService;
+    private ActorRef requestHandler;
 
     public DsubActor(MediatorConfig config) {
         this.config = config;
@@ -70,34 +73,23 @@ public class DsubActor extends UntypedActor {
     @Override
     public void onReceive(Object msg) {
         if (msg instanceof MediatorHTTPRequest) {
-            readMessage((MediatorHTTPRequest) msg);
+            handleMessage((MediatorHTTPRequest) msg);
         }
     }
 
-    private void readMessage(MediatorHTTPRequest request) {
+    private void handleMessage(MediatorHTTPRequest request) {
+        requestHandler = request.getRequestHandler();
 
         Object result = parseMessage(request);
 
         if (result instanceof Subscribe) {
             Subscribe subscribeRequest = (Subscribe) result;
-            W3CEndpointReference consumerRef = subscribeRequest.getConsumerReference();
-            Object address = getProperty(consumerRef, "address");
-
-            String uri = getProperty(address, "uri");
-            JAXBElement<String> termination = subscribeRequest.getInitialTerminationTime();
-
-            Date terminationDate = null;
-            if (termination != null && !termination.isNil()) {
-                String val = termination.getValue();
-                if (StringUtils.isNotBlank(val)) {
-                    try {
-                        terminationDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSXXX").parse(val);
-                    } catch (ParseException e) {
-                        throw new RuntimeException("Unable to parse the date", e);
-                    }
-                }
-            }
-            dsubService.createSubscription(uri, null, terminationDate);
+            handleSubscriptionMessage(subscribeRequest);
+            MediatorHTTPResponse creationSuccess = new MediatorHTTPResponse(request,
+                    "Subscription created with success",
+                    HttpStatus.SC_CREATED,
+                    null);
+            requestHandler.tell(creationSuccess.toFinishRequest(), getSelf());
         } else if (result instanceof Unsubscribe) {
             Unsubscribe unsubscribeRequest = (Unsubscribe) result;
             //unsubscribe request handling
@@ -126,8 +118,34 @@ public class DsubActor extends UntypedActor {
             Notify notifyRequest = (Notify) result;
             //notify request handling
         } else {
-            //unknown request type handling
+            //unknown message type handling
+            MediatorHTTPResponse unknownMessageError = new MediatorHTTPResponse(request,
+                    "Unknown message type error",
+                    HttpStatus.SC_BAD_REQUEST,
+                    null);
+            requestHandler.tell(unknownMessageError.toFinishRequest(), getSelf());
         }
+    }
+
+    private void handleSubscriptionMessage(Subscribe subscribeRequest) {
+        W3CEndpointReference consumerRef = subscribeRequest.getConsumerReference();
+        Object address = getProperty(consumerRef, "address");
+
+        String uri = getProperty(address, "uri");
+        JAXBElement<String> termination = subscribeRequest.getInitialTerminationTime();
+
+        Date terminationDate = null;
+        if (termination != null && !termination.isNil()) {
+            String val = termination.getValue();
+            if (StringUtils.isNotBlank(val)) {
+                try {
+                    terminationDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSXXX").parse(val);
+                } catch (ParseException e) {
+                    throw new RuntimeException("Unable to parse the date", e);
+                }
+            }
+        }
+        dsubService.createSubscription(uri, null, terminationDate);
     }
 
     private Object parseMessage(MediatorHTTPRequest request) {
