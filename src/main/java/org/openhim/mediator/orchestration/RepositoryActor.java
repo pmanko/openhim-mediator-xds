@@ -59,11 +59,11 @@ public class RepositoryActor extends UntypedActor {
 
     private String messageBuffer;
     private SOAPWrapper soapWrapper;
-
+    private String labOrderDocumentId;
 
     public RepositoryActor(MediatorConfig config) {
         this.config = config;
-        mtomProcessor = getContext().actorOf(Props.create(XDSbMimeProcessorActor.class, config),
+        mtomProcessor = getContext().actorOf(Props.create(XDSbMimeProcessorActor.class),
                 "xds-multipart-normalization");
     }
 
@@ -76,7 +76,8 @@ public class RepositoryActor extends UntypedActor {
                 contentType, "multipart/form-data"))) {
 
             log.info("Message is multipart. Parsing contents...");
-            XDSbMimeProcessorActor.MimeMessage mimeMsg = new XDSbMimeProcessorActor.MimeMessage(originalRequest.getRequestHandler(), getSelf(), originalRequest.getBody(), contentType);
+            XDSbMimeProcessorActor.MimeMessage mimeMsg = new XDSbMimeProcessorActor.MimeMessage(
+                    originalRequest.getRequestHandler(), getSelf(), originalRequest.getBody(), contentType);
             mtomProcessor.tell(mimeMsg, getSelf());
             messageIsMTOM = true;
         } else {
@@ -198,6 +199,7 @@ public class RepositoryActor extends UntypedActor {
     private void processProvideAndRegisterResponse(OrchestrateProvideAndRegisterRequestResponse msg) {
         soapWrapper.setSoapBody(msg.getResponseObject());
         messageBuffer = soapWrapper.getFullDocument();
+        labOrderDocumentId = msg.getLabOrderDocumentId();
 
         if (messageIsMTOM) {
             XDSbMimeProcessorActor.EnrichedMessage mimeMsg = new XDSbMimeProcessorActor.EnrichedMessage(

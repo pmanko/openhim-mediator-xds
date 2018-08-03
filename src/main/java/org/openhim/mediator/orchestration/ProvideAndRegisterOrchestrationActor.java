@@ -11,12 +11,11 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import ihe.iti.xds_b._2007.ProvideAndRegisterDocumentSetRequestType;
 import ihe.iti.xds_b._2007.ObjectFactory;
+import ihe.iti.xds_b._2007.ProvideAndRegisterDocumentSetRequestType;
 import oasis.names.tc.ebxml_regrep.xsd.rim._3.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpStatus;
 import org.dcm4chee.xds2.common.XDSConstants;
 import org.dcm4chee.xds2.infoset.util.InfosetUtil;
 import org.openhim.mediator.Util;
@@ -24,16 +23,19 @@ import org.openhim.mediator.datatypes.AssigningAuthority;
 import org.openhim.mediator.datatypes.Identifier;
 import org.openhim.mediator.denormalization.RegistryResponseError;
 import org.openhim.mediator.engine.MediatorConfig;
-import org.openhim.mediator.engine.messages.*;
+import org.openhim.mediator.engine.messages.ExceptError;
+import org.openhim.mediator.engine.messages.MediatorRequestMessage;
+import org.openhim.mediator.engine.messages.SimpleMediatorRequest;
+import org.openhim.mediator.engine.messages.SimpleMediatorResponse;
 import org.openhim.mediator.exceptions.CXParseException;
 import org.openhim.mediator.exceptions.ValidationException;
 import org.openhim.mediator.messages.*;
 import org.openhim.mediator.normalization.ParseProvideAndRegisterRequestActor;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 import javax.xml.bind.DatatypeConverter;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -54,6 +56,7 @@ import java.util.*;
  */
 public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
 
+    private static final String LAB_ORDER_FORMAT_CODE = "HL7/Lab 2.5";
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private abstract class IdentifierMapping {
@@ -156,6 +159,7 @@ public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
     private List<IdentifierMapping> enterpriseHealthcareWorkerIds = new ArrayList<>();
     private List<IdentifierMapping> enterpriseFacilityIds = new ArrayList<>();
 
+    private String labOrderDocumentId;
 
     /* auto-register patient */
 
@@ -163,10 +167,6 @@ public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
     private boolean sentNewRegistrationRequest = false;
     //Identifiers that couldn't be resolved
     private List<IdentifierMapping> failedPatientIds = new ArrayList<>();
-
-    /* */
-
-
 
     public ProvideAndRegisterOrchestrationActor(MediatorConfig config, ActorRef resolvePatientIdHandler,
                                                 ActorRef resolveHealthcareWorkerIdHandler, ActorRef resolveFacilityIdHandler) {
@@ -195,6 +195,7 @@ public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
         parsedRequest = doc;
         boolean outcome = true;
         try {
+            extractLabOrderDocumentId();
             initIdentifiersToBeResolvedMappings();
             if (!checkAndRespondIfAllResolved()) {
                 resolveEnterpriseIdentifiers();
@@ -205,6 +206,49 @@ public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
         } finally {
             sendAuditMessage(ATNAAudit.TYPE.PROVIDE_AND_REGISTER_RECEIVED, outcome);
         }
+    }
+
+    private void extractLabOrderDocumentId() {
+        if (parsedRequest != null) {
+            for (ExtrinsicObjectType eot : getExtrinsicObjectTypes(parsedRequest)) {
+                if (isClassifiedAsLabOrder(eot)) {
+                    labOrderDocumentId = getDocumentUniqueId(eot);
+                }
+            }
+        }
+    }
+
+    private List<ExtrinsicObjectType> getExtrinsicObjectTypes(ProvideAndRegisterDocumentSetRequestType parsedRequest) {
+        List<ExtrinsicObjectType> extrinsicObjectTypes = new ArrayList<>();
+        for ( JAXBElement<? extends IdentifiableType> object : parsedRequest.getSubmitObjectsRequest()
+                .getRegistryObjectList().getIdentifiable()) {
+            IdentifiableType identifiable = (IdentifiableType)((JAXBElement)object).getValue();
+            if (identifiable instanceof ExtrinsicObjectType) {
+                extrinsicObjectTypes.add((ExtrinsicObjectType) identifiable);
+            }
+        }
+        return extrinsicObjectTypes;
+    }
+
+    private boolean isClassifiedAsLabOrder(ExtrinsicObjectType eot) {
+        boolean isLabOrder = false;
+        for (ClassificationType ct : eot.getClassification()) {
+            if (ct.getClassificationScheme().equalsIgnoreCase(XDSConstants.UUID_XDSDocumentEntry_formatCode) &&
+                    ct.getNodeRepresentation().equalsIgnoreCase(LAB_ORDER_FORMAT_CODE)) {
+                isLabOrder = true;
+            }
+        }
+        return isLabOrder;
+    }
+
+    private String getDocumentUniqueId(ExtrinsicObjectType eot) {
+        String uniqueID = null;
+        for (ExternalIdentifierType eit : eot.getExternalIdentifier()) {
+            if (eit.getIdentificationScheme().equalsIgnoreCase(XDSConstants.UUID_XDSDocumentEntry_uniqueId)) {
+                uniqueID = eit.getValue();
+            }
+        }
+        return uniqueID;
     }
 
     private void initIdentifiersToBeResolvedMappings() throws ValidationException {
@@ -528,7 +572,7 @@ public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
     private void respondSuccess() throws JAXBException {
         log.info("All identifiers resolved. Responding with enriched document.");
         messageBuffer = Util.marshallJAXBObject("ihe.iti.xds_b._2007", new ObjectFactory().createProvideAndRegisterDocumentSetRequest(parsedRequest), false);
-        OrchestrateProvideAndRegisterRequestResponse response = new OrchestrateProvideAndRegisterRequestResponse(originalRequest, messageBuffer);
+        OrchestrateProvideAndRegisterRequestResponse response = new OrchestrateProvideAndRegisterRequestResponse(originalRequest, messageBuffer, labOrderDocumentId);
         originalRequest.getRespondTo().tell(response, getSelf());
     }
 

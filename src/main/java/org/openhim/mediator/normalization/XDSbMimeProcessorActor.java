@@ -42,12 +42,6 @@ import java.util.*;
  */
 public class XDSbMimeProcessorActor extends UntypedActor {
 
-    private ActorRef dsubActor;
-
-    XDSbMimeProcessorActor(MediatorConfig config) {
-        dsubActor = getContext().actorOf(Props.create(DsubActor.class, config), "xds-dsub");
-    }
-
     public static class MimeMessage extends SimpleMediatorRequest<String> {
         final String contentType;
 

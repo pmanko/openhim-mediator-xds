@@ -10,7 +10,16 @@ import org.openhim.mediator.engine.messages.MediatorRequestMessage;
 import org.openhim.mediator.engine.messages.SimpleMediatorResponse;
 
 public class OrchestrateProvideAndRegisterRequestResponse extends SimpleMediatorResponse<String> {
-    public OrchestrateProvideAndRegisterRequestResponse(MediatorRequestMessage originalRequest, String responseObject) {
+
+    private String labOrderDocumentId;
+
+    public OrchestrateProvideAndRegisterRequestResponse(MediatorRequestMessage originalRequest, String responseObject,
+                                                        String labOrderDocumentId) {
         super(originalRequest, responseObject);
+        this.labOrderDocumentId = labOrderDocumentId;
+    }
+
+    public String getLabOrderDocumentId() {
+        return labOrderDocumentId;
     }
 }
