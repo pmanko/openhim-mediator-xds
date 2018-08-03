@@ -22,38 +22,38 @@ public class RegistryResponseError {
     public static final String XDS_UNKNOWN_PATIENTID = "XDSUnknownPatientId";
     public static final String XDS_REPOSITORY_METADATA_ERROR = "XDSRepositoryMetadataError";
 
-
+    // @see https://www.w3.org/Protocols/rfc1341/7_2_Multipart.html
     private static final String TEMPLATE =
         "------OPENHIM\n" +
         "Content-Type: application/xop+xml; charset=utf-8; type=\"application/soap+xml\"\n" +
         "\n" +
-        "\n" +
-        "\n" +
-        "<env:Envelope xmlns:env=\"http://www.w3.org/2003/05/soap-envelope\">\n" +
-        "  <env:Header xmlns:wsa=\"http://www.w3.org/2005/08/addressing\">\n" +
-        "    <wsa:To env:mustUnderstand=\"true\">http://www.w3.org/2005/08/addressing/anonymous</wsa:To>\n" +
-        "    <wsa:Action>%s</wsa:Action>\n" +
-        "    <wsa:MessageID>%s</wsa:MessageID>\n" +
-        "    <wsa:RelatesTo>%s</wsa:RelatesTo>\n" +
-        "  </env:Header>\n" +
-        "  <env:Body>\n" +
-        "    <ns3:RegistryResponse\n" +
-        "      xmlns:ns3=\"urn:oasis:names:tc:ebxml-regrep:xsd:rs:3.0\"\n" +
-        "      xmlns:ns2=\"urn:oasis:names:tc:ebxml-regrep:xsd:rim:3.0\"\n" +
-        "      xmlns:ns4=\"urn:ihe:iti:xds-b:2007\"\n" +
-        "      xmlns:ns5=\"urn:oasis:names:tc:ebxml-regrep:xsd:lcm:3.0\"\n" +
-        "      xmlns:ns6=\"urn:oasis:names:tc:ebxml-regrep:xsd:query:3.0\" status=\"urn:oasis:names:tc:ebxml-regrep:ResponseStatusType:Failure\">\n" +
-        "      <ns3:RegistryErrorList highestSeverity=\"urn:oasis:names:tc:ebxml-regrep:ErrorSeverityType:Error\">\n" +
+        "<env:Envelope xmlns:env=\"http://www.w3.org/2003/05/soap-envelope\">" +
+        "<env:Header xmlns:wsa=\"http://www.w3.org/2005/08/addressing\">" +
+        "<wsa:To env:mustUnderstand=\"true\">http://www.w3.org/2005/08/addressing/anonymous</wsa:To>" +
+        "<wsa:Action>%s</wsa:Action>" +
+        "<wsa:MessageID>%s</wsa:MessageID>" +
+        "<wsa:RelatesTo>%s</wsa:RelatesTo>" +
+        "</env:Header>" +
+        "<env:Body>" +
+        "<ns3:RegistryResponse " +
+        "xmlns:ns3=\"urn:oasis:names:tc:ebxml-regrep:xsd:rs:3.0\" " +
+        "xmlns:ns2=\"urn:oasis:names:tc:ebxml-regrep:xsd:rim:3.0\" " +
+        "xmlns:ns4=\"urn:ihe:iti:xds-b:2007\" " +
+        "xmlns:ns5=\"urn:oasis:names:tc:ebxml-regrep:xsd:lcm:3.0\" " +
+        "xmlns:ns6=\"urn:oasis:names:tc:ebxml-regrep:xsd:query:3.0\" " +
+        "status=\"urn:oasis:names:tc:ebxml-regrep:ResponseStatusType:Failure\">" +
+        "<ns3:RegistryErrorList highestSeverity=\"urn:oasis:names:tc:ebxml-regrep:ErrorSeverityType:Error\">" +
         "%s" +
-        "      </ns3:RegistryErrorList>\n" +
-        "    </ns3:RegistryResponse>\n" +
-        "  </env:Body>\n" +
+        "</ns3:RegistryErrorList>" +
+        "</ns3:RegistryResponse>" +
+        "</env:Body>" +
         "</env:Envelope>\n" +
         "------OPENHIM--";
 
 
     public static class RegistryError {
-        private static final String REGISTRY_ERROR_TEMPLATE = "<ns3:RegistryError errorCode=\"%s\" codeContext=\"%s\" severity=\"urn:oasis:names:tc:ebxml-regrep:ErrorSeverityType:Error\"/>";
+        private static final String REGISTRY_ERROR_TEMPLATE = "<ns3:RegistryError errorCode=\"%s\" codeContext=\"%s\" " +
+                "severity=\"urn:oasis:names:tc:ebxml-regrep:ErrorSeverityType:Error\"/>";
 
         private String errorCode;
         private String codeContext;
@@ -72,7 +72,8 @@ public class RegistryResponseError {
         }
 
         protected String toXML() {
-            return String.format(REGISTRY_ERROR_TEMPLATE, StringEscapeUtils.escapeXml10(errorCode), StringEscapeUtils.escapeXml10(codeContext));
+            return String.format(REGISTRY_ERROR_TEMPLATE, StringEscapeUtils.escapeXml10(errorCode),
+                    StringEscapeUtils.escapeXml10(codeContext));
         }
     }
 
@@ -103,14 +104,16 @@ public class RegistryResponseError {
         StringBuilder errorListXML = new StringBuilder();
 
         for (RegistryError error : errorList) {
-            errorListXML.append("        " + error.toXML() + "\n");
+            errorListXML.append(error.toXML());
         }
 
         return String.format(TEMPLATE, action, messageID, relatesTo, errorListXML.toString());
     }
 
     public FinishRequest toFinishRequest() {
-        String contentType = "Multipart/Related; start-info=\"application/soap+xml\"; type=\"application/xop+xml\"; boundary=\"------OPENHIM\";charset=UTF-8";
-        return new FinishRequest(toXML(), contentType, HttpStatus.SC_OK);
+        String contentType = "Multipart/Related; start-info=\"application/soap+xml\"; " +
+                "type=\"application/xop+xml\"; boundary=\"----OPENHIM\";charset=UTF-8";
+        String xml = toXML();
+        return new FinishRequest(xml, contentType, HttpStatus.SC_OK);
     }
 }
