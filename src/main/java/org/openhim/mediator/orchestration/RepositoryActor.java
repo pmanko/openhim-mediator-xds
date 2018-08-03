@@ -12,6 +12,8 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import ca.uhn.hl7v2.model.v25.message.ORM_O01;
+import ca.uhn.hl7v2.parser.PipeParser;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
@@ -51,7 +53,7 @@ public class RepositoryActor extends UntypedActor {
     private String action;
     private String messageID;
     private String xForwardedFor;
-    private String mimeDocument;
+    private String cdaDocument;
     private String contentType;
     private boolean messageIsMTOM;
 
@@ -61,7 +63,8 @@ public class RepositoryActor extends UntypedActor {
 
     public RepositoryActor(MediatorConfig config) {
         this.config = config;
-        mtomProcessor = getContext().actorOf(Props.create(XDSbMimeProcessorActor.class), "xds-multipart-normalization");
+        mtomProcessor = getContext().actorOf(Props.create(XDSbMimeProcessorActor.class, config),
+                "xds-multipart-normalization");
     }
 
 
@@ -91,7 +94,11 @@ public class RepositoryActor extends UntypedActor {
             if (msg.getDocuments()!=null && msg.getDocuments().size()>0) {
                 //TODO atm only a single document is handled
                 //this is just used for 'autoRegister' and really only so that there is _some_ support for mtom.
-                mimeDocument = msg.getDocuments().get(0);
+                for (String document : msg.getDocuments()) {
+                    if (!isLabOrderDocument(document)) {
+                        cdaDocument = document;
+                    }
+                }
             }
 
             triggerRepositoryAction();
@@ -101,6 +108,18 @@ public class RepositoryActor extends UntypedActor {
         } else {
             unhandled(msg);
         }
+    }
+
+    private boolean isLabOrderDocument(String message) {
+        boolean isORM_001 = true;
+        try {
+            PipeParser pipeParser = new PipeParser();
+            ORM_O01 orm_o01 = new ORM_O01();
+            pipeParser.parse(orm_o01, message);
+        } catch (Exception ex) {
+            isORM_001 = false;
+        }
+        return  isORM_001;
     }
 
     private boolean determineSOAPAction() {
@@ -167,7 +186,7 @@ public class RepositoryActor extends UntypedActor {
         try {
             soapWrapper = new SOAPWrapper(messageBuffer);
             OrchestrateProvideAndRegisterRequest msg = new OrchestrateProvideAndRegisterRequest(
-                    originalRequest.getRequestHandler(), getSelf(), soapWrapper.getSoapBody(), xForwardedFor, mimeDocument, messageID
+                    originalRequest.getRequestHandler(), getSelf(), soapWrapper.getSoapBody(), xForwardedFor, cdaDocument, messageID
             );
             pnrOrchestrator.tell(msg, getSelf());
         } catch (SOAPWrapper.SOAPParseException ex) {
