@@ -7,9 +7,12 @@
 package org.openhim.mediator.normalization;
 
 import akka.actor.ActorRef;
+import akka.actor.Props;
 import akka.actor.UntypedActor;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.openhim.mediator.dsub.DsubActor;
+import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.messages.ExceptError;
 import org.openhim.mediator.engine.messages.MediatorRequestMessage;
 import org.openhim.mediator.engine.messages.SimpleMediatorRequest;
@@ -38,6 +41,12 @@ import java.util.*;
  * </ul>
  */
 public class XDSbMimeProcessorActor extends UntypedActor {
+
+    private ActorRef dsubActor;
+
+    XDSbMimeProcessorActor(MediatorConfig config) {
+        dsubActor = getContext().actorOf(Props.create(DsubActor.class, config), "xds-dsub");
+    }
 
     public static class MimeMessage extends SimpleMediatorRequest<String> {
         final String contentType;

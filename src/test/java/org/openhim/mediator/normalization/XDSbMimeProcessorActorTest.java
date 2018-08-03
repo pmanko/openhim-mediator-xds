@@ -12,10 +12,13 @@ import akka.actor.Props;
 import akka.testkit.JavaTestKit;
 import org.apache.commons.io.IOUtils;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openhim.mediator.engine.MediatorConfig;
 import scala.concurrent.duration.Duration;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
@@ -28,10 +31,15 @@ public class XDSbMimeProcessorActorTest {
             "start-info=\"application/soap+xml\"; action=\"urn:ihe:iti:2007:ProvideAndRegisterDocumentSet-b\"";
 
     static ActorSystem system;
+    private MediatorConfig testConfig;
 
-    @BeforeClass
-    public static void setup() {
+    @Before
+    public void setup() throws IOException {
         system = ActorSystem.create();
+
+        testConfig = new MediatorConfig();
+        testConfig.setName("registry-tests");
+        testConfig.setProperties("mediator-unit-test.properties");
     }
 
     @AfterClass
@@ -46,7 +54,7 @@ public class XDSbMimeProcessorActorTest {
         final String testPnRBasicMtom = IOUtils.toString(testPnRBasicMtomIn);
 
         new JavaTestKit(system) {{
-            ActorRef actor = system.actorOf(Props.create(XDSbMimeProcessorActor.class));
+            ActorRef actor = system.actorOf(Props.create(XDSbMimeProcessorActor.class, testConfig));
             XDSbMimeProcessorActor.MimeMessage testMsg = new XDSbMimeProcessorActor.MimeMessage(getRef(), getRef(), testPnRBasicMtom, CONTENT_TYPE);
             actor.tell(testMsg, getRef());
 
@@ -61,7 +69,7 @@ public class XDSbMimeProcessorActorTest {
         final String testPnRBasicMtom = IOUtils.toString(testPnRBasicMtomIn);
 
         new JavaTestKit(system) {{
-            ActorRef actor = system.actorOf(Props.create(XDSbMimeProcessorActor.class));
+            ActorRef actor = system.actorOf(Props.create(XDSbMimeProcessorActor.class, testConfig));
             XDSbMimeProcessorActor.MimeMessage testMsg = new XDSbMimeProcessorActor.MimeMessage(getRef(), getRef(), testPnRBasicMtom, CONTENT_TYPE);
             actor.tell(testMsg, getRef());
 
@@ -79,7 +87,7 @@ public class XDSbMimeProcessorActorTest {
         final String testPnRModifiedMtom = IOUtils.toString(testPnRModifiedMtomIn);
 
         new JavaTestKit(system) {{
-            ActorRef actor = system.actorOf(Props.create(XDSbMimeProcessorActor.class));
+            ActorRef actor = system.actorOf(Props.create(XDSbMimeProcessorActor.class, testConfig));
 
             XDSbMimeProcessorActor.MimeMessage testMsg = new XDSbMimeProcessorActor.MimeMessage(getRef(), getRef(), testPnRBasicMtom, CONTENT_TYPE);
             actor.tell(testMsg, getRef());
