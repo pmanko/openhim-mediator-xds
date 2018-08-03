@@ -14,16 +14,19 @@ import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import ca.uhn.hl7v2.model.v25.message.ORM_O01;
 import ca.uhn.hl7v2.parser.PipeParser;
+import ca.uhn.hl7v2.util.StringUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.openhim.mediator.denormalization.CSDRequestActor;
 import org.openhim.mediator.denormalization.PIXRequestActor;
+import org.openhim.mediator.dsub.DsubActor;
 import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.messages.ExceptError;
 import org.openhim.mediator.engine.messages.FinishRequest;
 import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
 import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.messages.NotifyNewDocument;
 import org.openhim.mediator.messages.OrchestrateProvideAndRegisterRequest;
 import org.openhim.mediator.messages.OrchestrateProvideAndRegisterRequestResponse;
 import org.openhim.mediator.normalization.SOAPWrapper;
@@ -47,6 +50,7 @@ public class RepositoryActor extends UntypedActor {
 
     private MediatorConfig config;
     private ActorRef mtomProcessor;
+    private ActorRef dsubActor;
 
     private MediatorHTTPRequest originalRequest;
 
@@ -65,6 +69,7 @@ public class RepositoryActor extends UntypedActor {
         this.config = config;
         mtomProcessor = getContext().actorOf(Props.create(XDSbMimeProcessorActor.class),
                 "xds-multipart-normalization");
+        dsubActor = getContext().actorOf(Props.create(DsubActor.class, config), "xds-dsub");
     }
 
 
@@ -250,6 +255,10 @@ public class RepositoryActor extends UntypedActor {
     }
 
     private void finalizeResponse(MediatorHTTPResponse response) {
+        if (StringUtil.isNotBlank(labOrderDocumentId)) {
+            NotifyNewDocument msg = new NotifyNewDocument(labOrderDocumentId);
+            dsubActor.tell(msg, getSelf());
+        }
         originalRequest.getRespondTo().tell(response.toFinishRequest(), getSelf());
     }
 
