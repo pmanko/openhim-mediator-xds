@@ -236,6 +236,7 @@ public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
             if (ct.getClassificationScheme().equalsIgnoreCase(XDSConstants.UUID_XDSDocumentEntry_formatCode) &&
                     ct.getNodeRepresentation().equalsIgnoreCase(LAB_ORDER_FORMAT_CODE)) {
                 isLabOrder = true;
+                break;
             }
         }
         return isLabOrder;
@@ -246,6 +247,7 @@ public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
         for (ExternalIdentifierType eit : eot.getExternalIdentifier()) {
             if (eit.getIdentificationScheme().equalsIgnoreCase(XDSConstants.UUID_XDSDocumentEntry_uniqueId)) {
                 uniqueID = eit.getValue();
+                break;
             }
         }
         return uniqueID;
