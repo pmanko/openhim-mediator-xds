@@ -1,8 +1,5 @@
 package org.openhim.mediator.messages;
 
-import org.apache.http.HttpStatus;
-import org.openhim.mediator.engine.messages.FinishRequest;
-
 import java.util.Objects;
 import java.util.UUID;
 
@@ -120,12 +117,7 @@ public class ITI53NotifyMessage {
         return Objects.hash(messageId, recipientServerAddress, brokerServerAddress, documentId);
     }
 
-    protected String toXML() {
+    public String generateMessage() {
         return String.format(TEMPLATE, messageId, recipientServerAddress, brokerServerAddress, documentId);
-    }
-
-    public FinishRequest toFinishRequest() {
-        String contentType = "Multipart/Related; start-info=\"application/soap+xml\"; type=\"application/xop+xml\"; boundary=\"------OPENHIM\";charset=UTF-8";
-        return new FinishRequest(toXML(), contentType, HttpStatus.SC_OK);
     }
 }
