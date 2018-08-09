@@ -29,6 +29,7 @@ import org.openhim.mediator.dsub.subscription.SubscriptionRepository;
 import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
 import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.messages.NotifyNewDocument;
 import org.xml.sax.SAXException;
 
 import javax.xml.bind.JAXBElement;
@@ -64,7 +65,7 @@ public class DsubActor extends UntypedActor {
 
         PullPointFactory pullPointFactory = new PullPointFactory(mongoDb);
         SubscriptionRepository subRepo = new MongoSubscriptionRepository(mongoDb, log);
-        SubscriptionNotifier subNotifier = new SoapSubscriptionNotifier();
+        SubscriptionNotifier subNotifier = new SoapSubscriptionNotifier(config);
 
         dsubService = new DsubServiceImpl(pullPointFactory, subRepo,
                 subNotifier, log);
@@ -74,6 +75,9 @@ public class DsubActor extends UntypedActor {
     public void onReceive(Object msg) {
         if (msg instanceof MediatorHTTPRequest) {
             handleMessage((MediatorHTTPRequest) msg);
+        } else if (msg instanceof NotifyNewDocument) {
+            NotifyNewDocument notifyNewDocument = (NotifyNewDocument) msg;
+            dsubService.notifyNewDocument(notifyNewDocument.getLabOrderDocumentId(), null);
         }
     }
 

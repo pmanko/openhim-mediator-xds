@@ -50,7 +50,7 @@ public class DsubServiceImpl implements DsubService {
                 .findActiveSubscriptions(facilityId);
 
         for (Subscription sub : subscriptions) {
-            subscriptionNotifier.notifySubscription(sub);
+            subscriptionNotifier.notifySubscription(sub, docId);
         }
     }
 

@@ -12,16 +12,21 @@ import akka.actor.Props;
 import akka.actor.UntypedActor;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import ca.uhn.hl7v2.model.v25.message.ORM_O01;
+import ca.uhn.hl7v2.parser.PipeParser;
+import ca.uhn.hl7v2.util.StringUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.openhim.mediator.denormalization.CSDRequestActor;
 import org.openhim.mediator.denormalization.PIXRequestActor;
+import org.openhim.mediator.dsub.DsubActor;
 import org.openhim.mediator.engine.MediatorConfig;
 import org.openhim.mediator.engine.messages.ExceptError;
 import org.openhim.mediator.engine.messages.FinishRequest;
 import org.openhim.mediator.engine.messages.MediatorHTTPRequest;
 import org.openhim.mediator.engine.messages.MediatorHTTPResponse;
+import org.openhim.mediator.messages.NotifyNewDocument;
 import org.openhim.mediator.messages.OrchestrateProvideAndRegisterRequest;
 import org.openhim.mediator.messages.OrchestrateProvideAndRegisterRequestResponse;
 import org.openhim.mediator.normalization.SOAPWrapper;
@@ -45,23 +50,26 @@ public class RepositoryActor extends UntypedActor {
 
     private MediatorConfig config;
     private ActorRef mtomProcessor;
+    private ActorRef dsubActor;
 
     private MediatorHTTPRequest originalRequest;
 
     private String action;
     private String messageID;
     private String xForwardedFor;
-    private String mimeDocument;
+    private String cdaDocument;
     private String contentType;
     private boolean messageIsMTOM;
 
     private String messageBuffer;
     private SOAPWrapper soapWrapper;
-
+    private String labOrderDocumentId;
 
     public RepositoryActor(MediatorConfig config) {
         this.config = config;
-        mtomProcessor = getContext().actorOf(Props.create(XDSbMimeProcessorActor.class), "xds-multipart-normalization");
+        mtomProcessor = getContext().actorOf(Props.create(XDSbMimeProcessorActor.class),
+                "xds-multipart-normalization");
+        dsubActor = getContext().actorOf(Props.create(DsubActor.class, config), "xds-dsub");
     }
 
 
@@ -73,7 +81,8 @@ public class RepositoryActor extends UntypedActor {
                 contentType, "multipart/form-data"))) {
 
             log.info("Message is multipart. Parsing contents...");
-            XDSbMimeProcessorActor.MimeMessage mimeMsg = new XDSbMimeProcessorActor.MimeMessage(originalRequest.getRequestHandler(), getSelf(), originalRequest.getBody(), contentType);
+            XDSbMimeProcessorActor.MimeMessage mimeMsg = new XDSbMimeProcessorActor.MimeMessage(
+                    originalRequest.getRequestHandler(), getSelf(), originalRequest.getBody(), contentType);
             mtomProcessor.tell(mimeMsg, getSelf());
             messageIsMTOM = true;
         } else {
@@ -91,7 +100,11 @@ public class RepositoryActor extends UntypedActor {
             if (msg.getDocuments()!=null && msg.getDocuments().size()>0) {
                 //TODO atm only a single document is handled
                 //this is just used for 'autoRegister' and really only so that there is _some_ support for mtom.
-                mimeDocument = msg.getDocuments().get(0);
+                for (String document : msg.getDocuments()) {
+                    if (!isLabOrderDocument(document)) {
+                        cdaDocument = document;
+                    }
+                }
             }
 
             triggerRepositoryAction();
@@ -101,6 +114,18 @@ public class RepositoryActor extends UntypedActor {
         } else {
             unhandled(msg);
         }
+    }
+
+    private boolean isLabOrderDocument(String message) {
+        boolean isORM_001 = true;
+        try {
+            PipeParser pipeParser = new PipeParser();
+            ORM_O01 orm_o01 = new ORM_O01();
+            pipeParser.parse(orm_o01, message);
+        } catch (Exception ex) {
+            isORM_001 = false;
+        }
+        return  isORM_001;
     }
 
     private boolean determineSOAPAction() {
@@ -167,7 +192,7 @@ public class RepositoryActor extends UntypedActor {
         try {
             soapWrapper = new SOAPWrapper(messageBuffer);
             OrchestrateProvideAndRegisterRequest msg = new OrchestrateProvideAndRegisterRequest(
-                    originalRequest.getRequestHandler(), getSelf(), soapWrapper.getSoapBody(), xForwardedFor, mimeDocument, messageID
+                    originalRequest.getRequestHandler(), getSelf(), soapWrapper.getSoapBody(), xForwardedFor, cdaDocument, messageID
             );
             pnrOrchestrator.tell(msg, getSelf());
         } catch (SOAPWrapper.SOAPParseException ex) {
@@ -179,6 +204,7 @@ public class RepositoryActor extends UntypedActor {
     private void processProvideAndRegisterResponse(OrchestrateProvideAndRegisterRequestResponse msg) {
         soapWrapper.setSoapBody(msg.getResponseObject());
         messageBuffer = soapWrapper.getFullDocument();
+        labOrderDocumentId = msg.getLabOrderDocumentId();
 
         if (messageIsMTOM) {
             XDSbMimeProcessorActor.EnrichedMessage mimeMsg = new XDSbMimeProcessorActor.EnrichedMessage(
@@ -229,6 +255,10 @@ public class RepositoryActor extends UntypedActor {
     }
 
     private void finalizeResponse(MediatorHTTPResponse response) {
+        if (StringUtil.isNotBlank(labOrderDocumentId)) {
+            NotifyNewDocument msg = new NotifyNewDocument(labOrderDocumentId);
+            dsubActor.tell(msg, getSelf());
+        }
         originalRequest.getRespondTo().tell(response.toFinishRequest(), getSelf());
     }
 
