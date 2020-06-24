@@ -56,7 +56,7 @@ import java.util.*;
  */
 public class ProvideAndRegisterOrchestrationActor extends UntypedActor {
 
-    private static final String LAB_ORDER_FORMAT_CODE = "HL7/Lab 2.5";
+    private static final String LAB_ORDER_FORMAT_CODE = "CDAR2/IHE 1.0";
     LoggingAdapter log = Logging.getLogger(getContext().system(), this);
 
     private abstract class IdentifierMapping {
