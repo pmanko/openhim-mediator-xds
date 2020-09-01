@@ -180,13 +180,12 @@ public class DsubActor extends UntypedActor {
     }
 
     private URL parseUrl(String url) {
-            try {
-                URI uri = new URL(url).toURI();
-                return uri.toURL();
-            }    
-            catch (Exception e) {
-                return null;
-            }
-        }        
-    } 
+        try {
+            URI uri = new URL(url).toURI();
+            return uri.toURL();
+        }    
+        catch (Exception e) {
+            return null;
+        }
+    }
 }
