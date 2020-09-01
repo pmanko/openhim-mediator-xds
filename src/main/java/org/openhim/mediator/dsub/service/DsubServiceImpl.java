@@ -60,7 +60,7 @@ public class DsubServiceImpl implements DsubService {
             try {
                 subscriptionNotifier.notifySubscription(sub, docId);
             } catch (Exception ex) {
-                log.error("Error occured while sending subscription. Unable to notify subscriber: " + uri);
+                log.error("Error occured while sending notification. Unable to notify subscriber: " + sub.getUrl());
             }
         }
     }
