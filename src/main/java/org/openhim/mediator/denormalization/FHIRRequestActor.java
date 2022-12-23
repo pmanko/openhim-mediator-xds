@@ -24,6 +24,7 @@ import ca.uhn.hl7v2.model.v25.segment.MSH;
 import ca.uhn.hl7v2.parser.GenericParser;
 import ca.uhn.hl7v2.parser.Parser;
 import ca.uhn.hl7v2.util.Terser;
+import org.apache.http.HttpStatus;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.r4.model.Bundle;
 import org.hl7.fhir.r4.model.Patient;
@@ -172,7 +173,7 @@ public class FHIRRequestActor extends UntypedActor {
 
             ActorSelection httpConnector = getContext().actorSelection(config.userPathFor("http-connector"));
             log.info("Sending http request to FHIR server");
-            httpConnector.tell(request, getSelf());
+            // httpConnector.tell(request, getSelf());
 
     }
 
@@ -256,8 +257,8 @@ public class FHIRRequestActor extends UntypedActor {
             if (log.isDebugEnabled()) {
                 log.debug("Patient ID: " + ((ResolvePatientIdentifier) msg).getIdentifier());
             }
-            // sendFHIRRequest((ResolvePatientIdentifier) msg);
-            sendPIXRequest((ResolvePatientIdentifier) msg);
+            FinishRequest response = new FinishRequest("A message from my new mediator!", "text/plain", HttpStatus.SC_OK);
+            ((ResolvePatientIdentifier) msg).getRequestHandler().tell(response, getSelf());
         } else if (msg instanceof RegisterNewPatient) {
             log.info("Received request to register new patient demographic record");
             sendFHIRRequest((RegisterNewPatient) msg);
