@@ -49,9 +49,7 @@ public class DsubServiceImpl implements DsubService {
         List<Subscription> subscriptions = subscriptionRepository
                 .findActiveSubscriptions(facilityId);
 
-        log.info("Active subscriptions: {}", subscriptions.size());
         for (Subscription sub : subscriptions) {
-            log.info("URL: {}", sub.getUrl());
             subscriptionNotifier.notifySubscription(sub, docId);
         }
     }
